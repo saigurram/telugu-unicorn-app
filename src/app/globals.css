@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fdf6ec;
+  --foreground: #4a3b3b;
+}
+
+@theme inline {
+  --color-cream: #fdf6ec;
+  --color-ink: #4a3b3b;
+  --color-lavender: #c9a7f0;
+  --color-sky: #a7d8f0;
+  --color-mint: #a7e8d8;
+  --color-blush: #f7b6d2;
+  --color-sun: #f4c95d;
+  --font-sans: var(--font-fredoka);
+  --font-telugu: var(--font-noto-telugu);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-fredoka), var(--font-noto-telugu), sans-serif;
+}
+
+.font-telugu {
+  font-family: var(--font-noto-telugu), sans-serif;
+}
+
+/* A 5-year-old's fingers need a large, forgiving tap target. */
+.tap-target {
+  min-height: 88px;
+  min-width: 88px;
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-10vh) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(110vh) rotate(360deg);
+    opacity: 0.9;
+  }
+}
