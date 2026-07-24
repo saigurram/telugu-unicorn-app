@@ -27,7 +27,7 @@ export async function synthesizeWithSarvam(
         inputs: [text],
         target_language_code: "te-IN",
         model: env.SARVAM_TTS_MODEL,
-        speaker: "meera",
+        speaker: "anushka",
         pace: 0.9,
         enable_preprocessing: true,
       }),

@@ -3,8 +3,14 @@ import type { Env } from "@/lib/env";
 /**
  * ElevenLabs streaming TTS. Voice settings tuned per spec §7: slower than
  * default (speed ~0.88) but still peppy, clear pronunciation, expressive
- * stability. `speed` support varies by ElevenLabs model version — verify
- * against real account access and adjust if the field is rejected.
+ * stability.
+ *
+ * `speed` is NOT supported by the `eleven_v3` model (sending it is
+ * documented to error) — v3 is also the only ElevenLabs model with Telugu
+ * support (eleven_multilingual_v2's 29-language list doesn't include it),
+ * so it must stay the default. That means explicit speed control is
+ * unavailable with the correct-for-Telugu model; omit the field entirely
+ * on v3 rather than risk every request failing.
  */
 export async function synthesizeWithElevenLabs(
   text: string,
@@ -13,6 +19,8 @@ export async function synthesizeWithElevenLabs(
   if (!env.ELEVENLABS_API_KEY || !env.ELEVENLABS_VOICE_ID) {
     throw new Error("ElevenLabs not configured (missing API key or voice ID)");
   }
+
+  const supportsSpeed = env.ELEVENLABS_MODEL_ID !== "eleven_v3";
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), env.TTS_TIMEOUT_MS);
@@ -35,7 +43,7 @@ export async function synthesizeWithElevenLabs(
             similarity_boost: 0.75,
             style: 0.5,
             use_speaker_boost: true,
-            speed: 0.88,
+            ...(supportsSpeed ? { speed: 0.88 } : {}),
           },
         }),
         signal: controller.signal,

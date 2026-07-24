@@ -9,7 +9,10 @@ const envSchema = z.object({
   ANTHROPIC_API_KEY: z.string().min(1, "ANTHROPIC_API_KEY is required"),
   ELEVENLABS_API_KEY: z.string().optional(),
   ELEVENLABS_VOICE_ID: z.string().optional(),
-  ELEVENLABS_MODEL_ID: z.string().default("eleven_multilingual_v2"),
+  // eleven_multilingual_v2 does NOT support Telugu (29-language list, no
+  // Telugu); eleven_v3 added Telugu in its 70+-language expansion. v3 is
+  // the only correct default for this app.
+  ELEVENLABS_MODEL_ID: z.string().default("eleven_v3"),
   SARVAM_API_KEY: z.string().optional(),
   SARVAM_TTS_MODEL: z.string().default("bulbul:v2"),
   SARVAM_STT_MODEL: z.string().default("saarika:v2"),

@@ -22,7 +22,10 @@ export async function transcribeWithElevenLabs(
   ) as ArrayBuffer;
 
   const form = new FormData();
-  form.append("model_id", "scribe_v1");
+  // scribe_v2 (not v1) explicitly supports multi-language audio in one
+  // file, auto-detecting each language without manual segmentation — the
+  // code-mixed Telugu/English case this app needs.
+  form.append("model_id", "scribe_v2");
   form.append("file", new Blob([arrayBuffer], { type: mimeType }), `audio.${extFromMime(mimeType)}`);
 
   const controller = new AbortController();

@@ -5,7 +5,7 @@ vi.mock("@/lib/env", () => ({
     ANTHROPIC_API_KEY: "test",
     ELEVENLABS_API_KEY: "el-key",
     ELEVENLABS_VOICE_ID: "voice-1",
-    ELEVENLABS_MODEL_ID: "eleven_multilingual_v2",
+    ELEVENLABS_MODEL_ID: "eleven_v3",
     SARVAM_API_KEY: "sarvam-key",
     SARVAM_TTS_MODEL: "bulbul:v2",
     SARVAM_STT_MODEL: "saarika:v2",

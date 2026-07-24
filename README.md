@@ -23,6 +23,23 @@ Fill in `.env.local`:
 npm run dev
 ```
 
+### Known vendor tradeoff: TTS model vs. speed control
+
+`ELEVENLABS_MODEL_ID` defaults to `eleven_v3` and **must stay that way** —
+ElevenLabs' other multilingual model (`eleven_multilingual_v2`) does not
+support Telugu at all. The tradeoff: `eleven_v3` does not support the
+`voice_settings.speed` field the spec asks for (§7, slower-than-default
+pace), so the app cannot programmatically slow Mila's speech down on this
+model — the code detects this and omits the field rather than risk every
+request failing. If ElevenLabs adds speed support to v3 later, or ships a
+different Telugu-capable model, update `ELEVENLABS_MODEL_ID` and revisit
+`src/lib/tts/elevenlabs.ts`'s `supportsSpeed` check.
+
+**This whole area (voice quality, latency, code-mixed transcription
+accuracy) has never been tested against real vendor accounts** — only
+against mocked responses in the test suite. Budget time for the §7 voice
+A/B test and a real on-device session before considering this done.
+
 ## Scripts
 
 - `npm run dev` — start the dev server
