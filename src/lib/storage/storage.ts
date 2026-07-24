@@ -13,6 +13,17 @@ function hasLocalStorage(): boolean {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 }
 
+/** Local (not UTC) calendar date as YYYY-MM-DD — the streak must track the
+ * family's own day boundary, not UTC's. `toISOString()` would misfire for
+ * any timezone ahead of UTC during the pre-dawn hours (e.g. IST before
+ * 5:30am is still "yesterday" in UTC). */
+function localDateString(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function readRaw(): AppStorageV1 {
   if (memoryFallback) return memoryFallback;
   if (!hasLocalStorage()) {
@@ -93,7 +104,7 @@ export function getSessionCount(): number {
  * and the daily streak (streak increments once per calendar day). */
 export function recordSessionComplete(): { sessionCount: number; streakCount: number } {
   const data = readRaw();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateString(new Date());
   const alreadyCountedToday = data.sessions.streakLastDate === today;
   const streakCount = alreadyCountedToday
     ? data.sessions.streakCount

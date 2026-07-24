@@ -15,6 +15,7 @@ export function useAudioPlayer() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [state, setState] = useState<PlaybackState>("idle");
   const epochRef = useRef(0);
+  const objectUrlRef = useRef<string | null>(null);
 
   const getAudioEl = useCallback(() => {
     if (!audioRef.current) {
@@ -22,6 +23,22 @@ export function useAudioPlayer() {
     }
     return audioRef.current;
   }, []);
+
+  const releaseObjectUrl = useCallback(() => {
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
+  }, []);
+
+  const setObjectUrl = useCallback(
+    (url: string) => {
+      releaseObjectUrl();
+      objectUrlRef.current = url;
+      return url;
+    },
+    [releaseObjectUrl],
+  );
 
   const stop = useCallback(() => {
     epochRef.current += 1;
@@ -31,8 +48,9 @@ export function useAudioPlayer() {
       audio.removeAttribute("src");
       audio.load();
     }
+    releaseObjectUrl();
     setState("idle");
-  }, []);
+  }, [releaseObjectUrl]);
 
   const play = useCallback(
     (text: string, signal?: AbortSignal): Promise<void> => {
@@ -75,7 +93,7 @@ export function useAudioPlayer() {
 
           if (canUseMSE) {
             const mediaSource = new MediaSource();
-            audio.src = URL.createObjectURL(mediaSource);
+            audio.src = setObjectUrl(URL.createObjectURL(mediaSource));
 
             mediaSource.addEventListener(
               "sourceopen",
@@ -111,7 +129,7 @@ export function useAudioPlayer() {
               .then((buf) => {
                 if (epoch !== epochRef.current) return;
                 const blob = new Blob([buf], { type: "audio/mpeg" });
-                audio.src = URL.createObjectURL(blob);
+                audio.src = setObjectUrl(URL.createObjectURL(blob));
                 return audio.play();
               })
               .catch(() => finish(false));
@@ -119,7 +137,7 @@ export function useAudioPlayer() {
         });
       });
     },
-    [getAudioEl],
+    [getAudioEl, setObjectUrl],
   );
 
   return { play, stop, state };

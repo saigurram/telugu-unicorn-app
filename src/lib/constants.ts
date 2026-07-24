@@ -23,3 +23,9 @@ export const CLAUDE_MODEL = "claude-sonnet-4-6";
 export const CLAUDE_MAX_TOKENS = 200;
 
 export const CELEBRATION_ANIMATION_FALLBACK_MS = 4_000;
+
+// Never leave the child staring at a silently-stuck unicorn: auto-retry a
+// failed turn a few times, then end the session warmly rather than retry
+// forever against a persistently broken vendor/network.
+export const ERROR_RETRY_DELAY_MS = 1_500;
+export const MAX_ERROR_RETRIES = 3;

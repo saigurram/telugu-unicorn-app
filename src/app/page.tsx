@@ -23,19 +23,28 @@ export default function Home() {
     defaultStorage(),
   );
 
-  const machine = useConversationMachine(childName, storage.settings.exchangeTarget);
+  const machine = useConversationMachine(
+    childName,
+    storage.settings.exchangeTarget,
+    storage.settings.sfxMuted,
+  );
   const lastPhaseRef = useRef(machine.state.phase);
+  const [starsEarned, setStarsEarned] = useState(0);
 
   // Enter the celebration screen the moment the phase first reaches
   // CELEBRATION, and stay there regardless of the machine's own later
   // auto-reset to IDLE — only the Home button (or fallback timer's state
-  // reset) should ever navigate away.
+  // reset) should ever navigate away. The exchange count is captured here
+  // rather than read live on the celebration screen: the hook's own
+  // fallback timer resets it back to 0 a few seconds later, which would
+  // otherwise make the star count visibly drop while still on-screen.
   useEffect(() => {
     if (machine.state.phase === "CELEBRATION" && lastPhaseRef.current !== "CELEBRATION") {
+      setStarsEarned(machine.state.exchangeCount);
       setScreen("celebration");
     }
     lastPhaseRef.current = machine.state.phase;
-  }, [machine.state.phase]);
+  }, [machine.state.phase, machine.state.exchangeCount]);
 
   const handlePlay = () => {
     machine.startSession();
@@ -49,7 +58,7 @@ export default function Home() {
   };
 
   if (screen === "celebration") {
-    return <CelebrationScreen starsEarned={machine.state.exchangeCount} onBackHome={handleBackHome} />;
+    return <CelebrationScreen starsEarned={starsEarned} onBackHome={handleBackHome} />;
   }
 
   if (screen === "conversation") {

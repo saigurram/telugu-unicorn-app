@@ -29,6 +29,10 @@ export function useAudioRecorder(onComplete: OnRecordingComplete) {
   const hardCapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
   const mimeTypeRef = useRef<string>("audio/webm");
+  // Bumped by stop(); a start() still awaiting getUserMedia checks this
+  // right after the permission prompt resolves so a cancelled start can
+  // never leave an orphaned, still-recording mic running.
+  const startTokenRef = useRef(0);
 
   const cleanup = useCallback(() => {
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
@@ -42,6 +46,7 @@ export function useAudioRecorder(onComplete: OnRecordingComplete) {
   }, []);
 
   const stop = useCallback(() => {
+    startTokenRef.current += 1;
     const recorder = mediaRecorderRef.current;
     if (recorder && recorder.state !== "inactive") {
       recorder.stop();
@@ -49,6 +54,7 @@ export function useAudioRecorder(onComplete: OnRecordingComplete) {
   }, []);
 
   const start = useCallback(async () => {
+    const token = ++startTokenRef.current;
     const mimeType = getSupportedMimeType();
     if (!mimeType) {
       // No supported recording format on this browser — treat as an
@@ -61,6 +67,13 @@ export function useAudioRecorder(onComplete: OnRecordingComplete) {
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: true, noiseSuppression: true },
     });
+
+    if (token !== startTokenRef.current) {
+      // stop() (or a newer start()) ran while getUserMedia was pending —
+      // never let a cancelled turn leave the mic on.
+      stream.getTracks().forEach((track) => track.stop());
+      return;
+    }
     streamRef.current = stream;
 
     const recorder = new MediaRecorder(stream, { mimeType });

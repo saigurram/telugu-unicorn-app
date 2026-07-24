@@ -4,7 +4,12 @@ import { getEnv } from "@/lib/env";
 import { getClaudeClient } from "@/lib/claude/client";
 import { buildSystemPrompt } from "@/lib/claude/systemPrompt";
 import { buildMessages } from "@/lib/claude/buildMessages";
-import { CLAUDE_MAX_TOKENS, CLAUDE_MODEL } from "@/lib/constants";
+import {
+  CLAUDE_MAX_TOKENS,
+  CLAUDE_MODEL,
+  MAX_EXCHANGE_TARGET,
+  MIN_EXCHANGE_TARGET,
+} from "@/lib/constants";
 import type { ConverseResponseBody } from "@/types";
 
 export const runtime = "nodejs";
@@ -28,8 +33,7 @@ const requestSchema = z.object({
     z.object({ role: z.enum(["mila", "child"]), text: z.string() }),
   ),
   turnCount: z.number().int().min(0),
-  exchangeTarget: z.number().int().min(1),
-  childUtterance: z.string(),
+  exchangeTarget: z.number().int().min(MIN_EXCHANGE_TARGET).max(MAX_EXCHANGE_TARGET),
 });
 
 const MILA_REPLY_TOOL = {
@@ -96,13 +100,15 @@ export async function POST(request: Request) {
   // The turn about to be generated becomes exchange (turnCount + 1); once
   // that reaches the target, fold the closing goodbye into this same
   // reply rather than waiting on one more (unconfigured) child turn.
-  const nearingEnd = parsedBody.turnCount + 1 >= parsedBody.exchangeTarget;
+  // isFirstTurn is checked first so a 1-exchange edge case can never make
+  // the greeting call get treated as the closing goodbye instead.
+  const nearingEnd = !isFirstTurn && parsedBody.turnCount + 1 >= parsedBody.exchangeTarget;
 
   const system = buildSystemPrompt(parsedBody.childName, parsedBody.topic) +
-    (nearingEnd
-      ? "\n\nThis is the FINAL exchange of the session. Wrap up warmly: celebrate the whole session, say a warm Telugu goodbye, mention you can't wait for tomorrow. Set session_complete to true."
-      : isFirstTurn
-        ? "\n\nThis is the start of the session. Greet her by name with high energy, referencing something light like the time of day."
+    (isFirstTurn
+      ? "\n\nThis is the start of the session. Greet her by name with high energy, referencing something light like the time of day."
+      : nearingEnd
+        ? "\n\nThis is the FINAL exchange of the session. Wrap up warmly: celebrate the whole session, say a warm Telugu goodbye, mention you can't wait for tomorrow. Set session_complete to true."
         : "");
 
   try {
@@ -111,7 +117,7 @@ export async function POST(request: Request) {
         model: CLAUDE_MODEL,
         max_tokens: CLAUDE_MAX_TOKENS,
         system,
-        messages: buildMessages(parsedBody.conversationHistory, parsedBody.childUtterance),
+        messages: buildMessages(parsedBody.conversationHistory),
         tools: [MILA_REPLY_TOOL],
         tool_choice: { type: "tool", name: "mila_reply" },
       },

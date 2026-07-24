@@ -32,7 +32,6 @@ export interface ConverseRequestBody {
   conversationHistory: ChatTurn[];
   turnCount: number;
   exchangeTarget: number;
-  childUtterance: string;
 }
 
 export interface ConverseResponseBody {

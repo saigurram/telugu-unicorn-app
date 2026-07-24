@@ -33,15 +33,13 @@ export type ConversationAction =
       exchangeComplete: boolean;
       sessionComplete: boolean;
     }
-  | { type: "MILA_PLAYBACK_STARTED" }
   | { type: "MILA_PLAYBACK_ENDED" }
   | { type: "CHILD_RECORDING_COMPLETE" }
   | { type: "TRANSCRIPT_READY"; text: string }
   | { type: "CELEBRATION_FINISHED" }
   | { type: "END_SESSION_EARLY" }
   | { type: "ERROR"; message: string; recoveryPhase: ConversationPhase }
-  | { type: "RETRY" }
-  | { type: "RESET" };
+  | { type: "RETRY" };
 
 export const initialConversationState: ConversationState = {
   phase: "IDLE",
@@ -59,9 +57,9 @@ export const initialConversationState: ConversationState = {
 };
 
 /**
- * Legal phase transitions, keyed by origin phase. Same-phase "transitions"
- * (e.g. MILA_PLAYBACK_STARTED while already MILA_SPEAKING) are always legal
- * and not listed. ERROR is reachable from any phase and is not listed here.
+ * Legal phase transitions, keyed by origin phase. A same-phase "transition"
+ * (to === from) is always legal and not listed. ERROR is reachable from
+ * any phase and is not listed here either.
  */
 const TRANSITION_TABLE: Record<ConversationPhase, ConversationPhase[]> = {
   IDLE: ["THINKING"],
@@ -117,13 +115,6 @@ export function conversationReducer(
       };
     }
 
-    case "MILA_PLAYBACK_STARTED": {
-      // No phase change — already MILA_SPEAKING. Kept as an explicit action
-      // so the UI can distinguish "reply text ready" from "audio actually
-      // playing" without a phase transition for the latter.
-      return state;
-    }
-
     case "MILA_PLAYBACK_ENDED": {
       const next = state.sessionComplete ? "CELEBRATION" : "LISTENING";
       assertLegalTransition(state.phase, next);
@@ -174,10 +165,6 @@ export function conversationReducer(
         phase: state.recoveryPhase,
         errorMessage: null,
       };
-    }
-
-    case "RESET": {
-      return { ...initialConversationState, turnEpoch: state.turnEpoch + 1 };
     }
 
     default:

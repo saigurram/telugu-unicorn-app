@@ -17,10 +17,19 @@ import {
   recordSessionComplete,
 } from "@/lib/storage/storage";
 import { playSfx } from "@/lib/audio/sfx";
-import { CELEBRATION_ANIMATION_FALLBACK_MS, PLAYBACK_TO_MIC_SETTLE_MS } from "@/lib/constants";
+import {
+  CELEBRATION_ANIMATION_FALLBACK_MS,
+  ERROR_RETRY_DELAY_MS,
+  MAX_ERROR_RETRIES,
+  PLAYBACK_TO_MIC_SETTLE_MS,
+} from "@/lib/constants";
 import type { ConverseRequestBody, ConverseResponseBody, TranscribeResponseBody, Topic } from "@/types";
 
-export function useConversationMachine(childName: string, exchangeTarget: number) {
+export function useConversationMachine(
+  childName: string,
+  exchangeTarget: number,
+  sfxMuted: boolean,
+) {
   const [state, dispatch] = useReducer(conversationReducer, initialConversationState);
 
   const turnEpochRef = useRef(state.turnEpoch);
@@ -28,8 +37,17 @@ export function useConversationMachine(childName: string, exchangeTarget: number
     turnEpochRef.current = state.turnEpoch;
   }, [state.turnEpoch]);
 
+  // A ref (not a closure-captured value) so every playSfx() call below —
+  // even ones inside effects keyed on phase/epoch rather than this prop —
+  // always reads the current mute setting.
+  const sfxMutedRef = useRef(sfxMuted);
+  useEffect(() => {
+    sfxMutedRef.current = sfxMuted;
+  }, [sfxMuted]);
+
   const audioPlayer = useAudioPlayer();
   const recordedRef = useRef<{ blob: Blob; mimeType: string } | null>(null);
+  const errorRetryCountRef = useRef(0);
 
   const handleRecordingComplete = useCallback((blob: Blob, mimeType: string) => {
     recordedRef.current = { blob, mimeType };
@@ -46,15 +64,13 @@ export function useConversationMachine(childName: string, exchangeTarget: number
       currentSession,
     );
     recordPhraseSeen(topic.id, currentSession);
-    playSfx("chime-open", false);
+    playSfx("chime-open", sfxMutedRef.current);
     dispatch({ type: "START_SESSION", childName, topic, exchangeTarget });
   }, [childName, exchangeTarget]);
 
   const endSessionEarly = useCallback(() => {
     dispatch({ type: "END_SESSION_EARLY" });
   }, []);
-
-  const retry = useCallback(() => dispatch({ type: "RETRY" }), []);
 
   const finishCelebration = useCallback(() => dispatch({ type: "CELEBRATION_FINISHED" }), []);
 
@@ -67,10 +83,7 @@ export function useConversationMachine(childName: string, exchangeTarget: number
     if (state.phase !== "THINKING") return;
     const epoch = state.turnEpoch;
     const controller = new AbortController();
-    const thinkingHumTimer = setTimeout(() => playSfx("thinking-hum", false), 800);
-
-    const lastTurn = state.history[state.history.length - 1];
-    const childUtterance = lastTurn?.role === "child" ? lastTurn.text : "";
+    const thinkingHumTimer = setTimeout(() => playSfx("thinking-hum", sfxMutedRef.current), 800);
 
     const body: ConverseRequestBody = {
       childName: state.childName,
@@ -78,7 +91,6 @@ export function useConversationMachine(childName: string, exchangeTarget: number
       conversationHistory: state.history,
       turnCount: state.exchangeCount,
       exchangeTarget: state.exchangeTarget,
-      childUtterance,
     };
 
     fetch("/api/converse", {
@@ -120,7 +132,7 @@ export function useConversationMachine(childName: string, exchangeTarget: number
     let cancelled = false;
 
     if (state.celebrationLevel !== "none") {
-      playSfx(state.celebrationLevel === "big" ? "sparkle-big" : "sparkle-small", false);
+      playSfx(state.celebrationLevel === "big" ? "sparkle-big" : "sparkle-small", sfxMutedRef.current);
     }
 
     audioPlayer
@@ -147,7 +159,7 @@ export function useConversationMachine(childName: string, exchangeTarget: number
     const epoch = state.turnEpoch;
     let cancelled = false;
 
-    playSfx("mic-boop", false);
+    playSfx("mic-boop", sfxMutedRef.current);
     const settleTimer = setTimeout(() => {
       if (cancelled || turnEpochRef.current !== epoch) return;
       recorder.start().catch(() => {
@@ -204,7 +216,7 @@ export function useConversationMachine(childName: string, exchangeTarget: number
   useEffect(() => {
     if (state.phase !== "CELEBRATION") return;
     const epoch = state.turnEpoch;
-    playSfx("cheer", false);
+    playSfx("cheer", sfxMutedRef.current);
     recordSessionComplete();
     const fallback = setTimeout(() => {
       if (turnEpochRef.current !== epoch) return;
@@ -213,11 +225,34 @@ export function useConversationMachine(childName: string, exchangeTarget: number
     return () => clearTimeout(fallback);
   }, [state.phase, state.turnEpoch]);
 
+  // ERROR: the spec's "never show the child an error state" applies here
+  // too — silently retry the failed step a few times (Mila just sits idle
+  // meanwhile), and if the failure persists, end the session warmly rather
+  // than leaving her stuck or retrying a broken vendor/network forever.
+  useEffect(() => {
+    if (state.phase !== "ERROR") {
+      errorRetryCountRef.current = 0;
+      return;
+    }
+    errorRetryCountRef.current += 1;
+    const epoch = state.turnEpoch;
+
+    if (errorRetryCountRef.current > MAX_ERROR_RETRIES) {
+      dispatch({ type: "END_SESSION_EARLY" });
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      if (turnEpochRef.current !== epoch) return;
+      dispatch({ type: "RETRY" });
+    }, ERROR_RETRY_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [state.phase, state.turnEpoch]);
+
   return {
     state,
     startSession,
     endSessionEarly,
-    retry,
     finishCelebration,
     manualStopListening,
     // Distinct from `state.phase === "LISTENING"`: the phase flips the
