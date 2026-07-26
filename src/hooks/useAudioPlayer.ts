@@ -11,6 +11,14 @@ export type PlaybackState = "idle" | "playing" | "ended" | "error";
  * on browsers without audio/mpeg MSE support (older iOS Safari) — TTS
  * utterances are only a few seconds, so the full-buffer wait is small.
  */
+// A near-silent single-sample WAV, used only to satisfy mobile browsers'
+// "play() must originate from a user gesture" rule. Playing this from
+// directly inside a click handler unlocks the shared <audio> element so
+// the real, async-fetched TTS playback later in the same session is
+// allowed to play programmatically.
+const SILENT_WAV =
+  "data:audio/wav;base64,UklGRiQAAAAWQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=";
+
 export function useAudioPlayer() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [state, setState] = useState<PlaybackState>("idle");
@@ -23,6 +31,17 @@ export function useAudioPlayer() {
     }
     return audioRef.current;
   }, []);
+
+  // Call synchronously from within a user gesture handler (e.g. the Home
+  // screen's "Play" button) before any async work starts.
+  const unlock = useCallback(() => {
+    const audio = getAudioEl();
+    audio.src = SILENT_WAV;
+    audio.play().then(
+      () => audio.pause(),
+      () => {},
+    );
+  }, [getAudioEl]);
 
   const releaseObjectUrl = useCallback(() => {
     if (objectUrlRef.current) {
@@ -140,5 +159,5 @@ export function useAudioPlayer() {
     [getAudioEl, setObjectUrl],
   );
 
-  return { play, stop, state };
+  return { play, stop, state, unlock };
 }

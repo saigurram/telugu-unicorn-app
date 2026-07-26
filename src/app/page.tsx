@@ -47,6 +47,10 @@ export default function Home() {
   }, [machine.state.phase, machine.state.exchangeCount]);
 
   const handlePlay = () => {
+    // Must run synchronously inside this click handler (before any async
+    // work) so mobile browsers treat the audio element as user-initiated —
+    // otherwise Mila's greeting silently fails to play.
+    machine.unlockAudio();
     machine.startSession();
     setScreen("conversation");
   };

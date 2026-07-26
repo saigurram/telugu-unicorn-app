@@ -98,6 +98,7 @@ export function useAudioRecorder(onComplete: OnRecordingComplete) {
       (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     const audioContext = new AudioContextCtor();
     audioContextRef.current = audioContext;
+    if (audioContext.state === "suspended") audioContext.resume().catch(() => {});
     const source = audioContext.createMediaStreamSource(stream);
     const analyser = audioContext.createAnalyser();
     analyser.fftSize = 2048;

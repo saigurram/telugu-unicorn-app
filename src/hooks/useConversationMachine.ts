@@ -260,6 +260,9 @@ export function useConversationMachine(
     // until after the settle delay + getUserMedia resolves. The mic
     // button must only be tappable once there's a real recording to stop.
     isRecording: recorder.isRecording,
+    // Must be called synchronously from the same click handler that
+    // starts the session — see useAudioPlayer's unlock() for why.
+    unlockAudio: audioPlayer.unlock,
   };
 }
 
