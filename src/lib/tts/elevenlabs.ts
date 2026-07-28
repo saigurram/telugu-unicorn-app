@@ -51,7 +51,10 @@ export async function synthesizeWithElevenLabs(
     );
 
     if (!res.ok || !res.body) {
-      throw new Error(`ElevenLabs TTS failed: ${res.status} ${res.statusText}`);
+      const detail = await res.text().catch(() => "");
+      throw new Error(
+        `ElevenLabs TTS failed: ${res.status} ${res.statusText}${detail ? ` — ${detail}` : ""}`,
+      );
     }
 
     return res.body;
