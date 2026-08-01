@@ -74,12 +74,16 @@ const MILA_REPLY_TOOL = {
   },
 };
 
+// Anthropic's tool_choice forcing doesn't guarantee every field marked
+// "required" in the tool schema actually gets populated — Claude can still
+// omit one. `speech` is the only field the app can't function without;
+// the rest get a safe default rather than failing the whole turn.
 const toolResultSchema = z.object({
   speech: z.string(),
-  child_spoke_telugu: z.boolean(),
-  exchange_complete: z.boolean(),
-  celebration_level: z.enum(["none", "small", "big"]),
-  session_complete: z.boolean(),
+  child_spoke_telugu: z.boolean().default(false),
+  exchange_complete: z.boolean().default(false),
+  celebration_level: z.enum(["none", "small", "big"]).default("none"),
+  session_complete: z.boolean().default(false),
 });
 
 export async function POST(request: Request) {
