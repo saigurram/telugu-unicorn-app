@@ -110,7 +110,7 @@ export async function POST(request: Request) {
 
   const system = buildSystemPrompt(parsedBody.childName, parsedBody.topic) +
     (isFirstTurn
-      ? "\n\nThis is the start of the session. Greet her by name with high energy, referencing something light like the time of day."
+      ? "\n\nThis is the start of the session. Greet her by name with high energy, referencing something light like the time of day, and end the greeting with one easy question so she has something to answer straight away."
       : nearingEnd
         ? "\n\nThis is the FINAL exchange of the session. Wrap up warmly: celebrate the whole session, say a warm Telugu goodbye, mention you can't wait for tomorrow. Set session_complete to true."
         : "");
