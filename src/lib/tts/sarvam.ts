@@ -30,6 +30,10 @@ export async function synthesizeWithSarvam(
         speaker: "anushka",
         pace: 0.9,
         enable_preprocessing: true,
+        // Sarvam defaults to raw linear16 PCM, which the client can't play
+        // as audio/mpeg — the whole pipeline (route Content-Type, MSE/Blob
+        // playback) assumes MP3, so this must be explicit.
+        output_audio_codec: "mp3",
       }),
       signal: controller.signal,
     });
