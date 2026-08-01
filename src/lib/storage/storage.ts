@@ -1,5 +1,11 @@
 import { NO_REPEAT_SESSION_WINDOW } from "@/lib/constants";
-import { STORAGE_KEY, defaultStorage, type AppStorageV1 } from "./schema";
+import {
+  MAX_MEMORIES,
+  MEMORY_MAX_LENGTH,
+  STORAGE_KEY,
+  defaultStorage,
+  type AppStorageV1,
+} from "./schema";
 
 /**
  * The only module in the app that touches raw localStorage. Falls back to
@@ -44,6 +50,7 @@ function readRaw(): AppStorageV1 {
       sessions: { ...defaults.sessions, ...parsed.sessions },
       settings: { ...defaults.settings, ...parsed.settings },
       phraseHistory: { ...defaults.phraseHistory, ...parsed.phraseHistory },
+      memories: Array.isArray(parsed.memories) ? parsed.memories : defaults.memories,
     };
   } catch {
     return defaultStorage();
@@ -150,4 +157,28 @@ export function getEligibleTopicIds(allIds: string[], currentSession: number): s
 
 export function getPhraseHistory(): AppStorageV1["phraseHistory"] {
   return readRaw().phraseHistory;
+}
+
+/** Newest-last list of things she's told Mila, for the system prompt. */
+export function getMemories(): string[] {
+  return readRaw().memories.map((entry) => entry.text);
+}
+
+/**
+ * Store one new fact about the child. Duplicates are ignored (case- and
+ * whitespace-insensitive) so Mila re-mentioning a favourite across sessions
+ * doesn't crowd the list, and the oldest fall off once MAX_MEMORIES is hit.
+ */
+export function recordMemory(text: string, sessionNumber: number): void {
+  const trimmed = text.trim().slice(0, MEMORY_MAX_LENGTH);
+  if (!trimmed) return;
+
+  const data = readRaw();
+  const normalized = trimmed.toLowerCase();
+  if (data.memories.some((entry) => entry.text.trim().toLowerCase() === normalized)) return;
+
+  const memories = [...data.memories, { text: trimmed, session: sessionNumber }].slice(
+    -MAX_MEMORIES,
+  );
+  writeRaw({ ...data, memories });
 }

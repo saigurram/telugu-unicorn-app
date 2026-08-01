@@ -10,6 +10,7 @@ function replyFor(turnIndex: number, exchangeTarget: number): ConverseResponseBo
       exchangeComplete: false,
       celebrationLevel: "none",
       sessionComplete: false,
+      remember: null,
     };
   }
   // turnIndex 0 is the greeting; turnIndex N (N >= 1) is the reply to the
@@ -22,6 +23,7 @@ function replyFor(turnIndex: number, exchangeTarget: number): ConverseResponseBo
     exchangeComplete: true,
     celebrationLevel: isClosing ? "big" : "small",
     sessionComplete: isClosing,
+    remember: null,
   };
 }
 

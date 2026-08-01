@@ -36,6 +36,7 @@ test("session picks the one topic not seen within the last 5 sessions", async ({
       exchangeComplete: false,
       celebrationLevel: "none",
       sessionComplete: false,
+      remember: null,
     };
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
   });

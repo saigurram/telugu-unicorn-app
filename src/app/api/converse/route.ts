@@ -10,6 +10,7 @@ import {
   MAX_EXCHANGE_TARGET,
   MIN_EXCHANGE_TARGET,
 } from "@/lib/constants";
+import { MAX_MEMORIES } from "@/lib/storage/schema";
 import type { ConverseResponseBody } from "@/types";
 
 export const runtime = "nodejs";
@@ -34,6 +35,8 @@ const requestSchema = z.object({
   ),
   turnCount: z.number().int().min(0),
   exchangeTarget: z.number().int().min(MIN_EXCHANGE_TARGET).max(MAX_EXCHANGE_TARGET),
+  activity: z.enum(["chat", "game", "story"]).default("chat"),
+  memories: z.array(z.string()).max(MAX_MEMORIES).default([]),
 });
 
 const MILA_REPLY_TOOL = {
@@ -63,6 +66,11 @@ const MILA_REPLY_TOOL = {
         description:
           "True only when this speech is the session's final goodbye and no more exchanges should follow.",
       },
+      remember: {
+        type: ["string", "null"],
+        description:
+          "A short fact the child just revealed about her real life that is worth recalling in future sessions — a favourite food, a toy's name, a sibling, a fear, something she did. Written in English for your own later reference, e.g. 'loves dosa', 'has a toy elephant called Bunny'. Null when this turn revealed nothing new.",
+      },
     },
     required: [
       "speech",
@@ -84,6 +92,7 @@ const toolResultSchema = z.object({
   exchange_complete: z.boolean().default(false),
   celebration_level: z.enum(["none", "small", "big"]).default("none"),
   session_complete: z.boolean().default(false),
+  remember: z.string().nullish().default(null),
 });
 
 export async function POST(request: Request) {
@@ -108,11 +117,17 @@ export async function POST(request: Request) {
   // the greeting call get treated as the closing goodbye instead.
   const nearingEnd = !isFirstTurn && parsedBody.turnCount + 1 >= parsedBody.exchangeTarget;
 
-  const system = buildSystemPrompt(parsedBody.childName, parsedBody.topic) +
+  const system =
+    buildSystemPrompt(
+      parsedBody.childName,
+      parsedBody.topic,
+      parsedBody.activity,
+      parsedBody.memories,
+    ) +
     (isFirstTurn
-      ? "\n\nThis is the start of the session. Greet her by name with high energy, referencing something light like the time of day, and end the greeting with one easy question so she has something to answer straight away."
+      ? "\n\nThis is the start of the session. Greet her by name with real delight — like you have been waiting all day for her. If you remember something about her, bring it up right now. End the greeting with one easy question so she has something to answer straight away."
       : nearingEnd
-        ? "\n\nThis is the FINAL exchange of the session. Wrap up warmly: celebrate the whole session, say a warm Telugu goodbye, mention you can't wait for tomorrow. Set session_complete to true."
+        ? "\n\nThis is the FINAL exchange of the session. Celebrate what she did today, say a warm Telugu goodbye — and leave a hook that makes her want tomorrow: an unfinished story, a promise, a secret you'll tell her next time (\"రేపు నేను నీకు ఒక రహస్యం చెప్తాను!\"). Set session_complete to true."
         : "");
 
   try {
@@ -141,6 +156,7 @@ export async function POST(request: Request) {
       exchangeComplete: parsed.exchange_complete,
       celebrationLevel: parsed.celebration_level,
       sessionComplete: parsed.session_complete,
+      remember: parsed.remember ?? null,
     };
 
     return NextResponse.json(body);

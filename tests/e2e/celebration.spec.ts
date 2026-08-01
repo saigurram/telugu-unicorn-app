@@ -29,6 +29,7 @@ test("celebration screen persists session count and streak", async ({ page }) =>
             exchangeComplete: false,
             celebrationLevel: "none",
             sessionComplete: false,
+            remember: null,
           }
         : {
             speech: "శభాష్! బై బై!",
@@ -36,6 +37,7 @@ test("celebration screen persists session count and streak", async ({ page }) =>
             exchangeComplete: true,
             celebrationLevel: "big",
             sessionComplete: true,
+            remember: null,
           },
   });
 
@@ -70,6 +72,7 @@ test("ending a session early always reaches the celebration screen", async ({ pa
       exchangeComplete: false,
       celebrationLevel: "none",
       sessionComplete: false,
+      remember: null,
     }),
   });
 
@@ -99,6 +102,7 @@ test("ending a session early while Mila is listening also reaches celebration", 
       exchangeComplete: false,
       celebrationLevel: "none",
       sessionComplete: false,
+      remember: null,
     }),
   });
 

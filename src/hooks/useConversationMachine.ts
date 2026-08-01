@@ -11,11 +11,14 @@ import { useAudioRecorder } from "./useAudioRecorder";
 import { selectTopic } from "@/lib/topics/selectTopic";
 import topicsBank from "@/data/topics.json";
 import {
+  getMemories,
   getPhraseHistory,
   getSessionCount,
+  recordMemory,
   recordPhraseSeen,
   recordSessionComplete,
 } from "@/lib/storage/storage";
+import { selectActivity } from "@/lib/activity";
 import { playSfx } from "@/lib/audio/sfx";
 import {
   CELEBRATION_ANIMATION_FALLBACK_MS,
@@ -23,7 +26,13 @@ import {
   MAX_ERROR_RETRIES,
   PLAYBACK_TO_MIC_SETTLE_MS,
 } from "@/lib/constants";
-import type { ConverseRequestBody, ConverseResponseBody, TranscribeResponseBody, Topic } from "@/types";
+import type {
+  ConverseRequestBody,
+  ConverseResponseBody,
+  SessionActivity,
+  TranscribeResponseBody,
+  Topic,
+} from "@/types";
 
 export function useConversationMachine(
   childName: string,
@@ -49,6 +58,13 @@ export function useConversationMachine(
   const recordedRef = useRef<{ blob: Blob; mimeType: string } | null>(null);
   const errorRetryCountRef = useRef(0);
 
+  // Fixed for the lifetime of a session: which shape today takes, and what
+  // Mila knows about the child. Held in refs so the THINKING effect (keyed
+  // on phase/epoch, not on these) always sends the current session's values.
+  const sessionNumberRef = useRef(0);
+  const activityRef = useRef<SessionActivity>("chat");
+  const memoriesRef = useRef<string[]>([]);
+
   const handleRecordingComplete = useCallback((blob: Blob, mimeType: string) => {
     recordedRef.current = { blob, mimeType };
     dispatch({ type: "CHILD_RECORDING_COMPLETE" });
@@ -64,6 +80,9 @@ export function useConversationMachine(
       currentSession,
     );
     recordPhraseSeen(topic.id, currentSession);
+    sessionNumberRef.current = currentSession;
+    activityRef.current = selectActivity(currentSession);
+    memoriesRef.current = getMemories();
     playSfx("chime-open", sfxMutedRef.current);
     dispatch({ type: "START_SESSION", childName, topic, exchangeTarget });
   }, [childName, exchangeTarget]);
@@ -91,6 +110,8 @@ export function useConversationMachine(
       conversationHistory: state.history,
       turnCount: state.exchangeCount,
       exchangeTarget: state.exchangeTarget,
+      activity: activityRef.current,
+      memories: memoriesRef.current,
     };
 
     fetch("/api/converse", {
@@ -106,6 +127,13 @@ export function useConversationMachine(
       })
       .then((data) => {
         if (!data || turnEpochRef.current !== epoch) return;
+        // Persist anything new she revealed so Mila can open with it in a
+        // later session — this is what makes her feel like someone who
+        // knows the child rather than a stranger every time.
+        if (data.remember) {
+          recordMemory(data.remember, sessionNumberRef.current);
+          memoriesRef.current = [...memoriesRef.current, data.remember];
+        }
         dispatch({
           type: "MILA_REPLY_READY",
           speech: data.speech,

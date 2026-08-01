@@ -26,12 +26,20 @@ export interface Topic {
   promptHint: string;
 }
 
+/** What shape today's session takes. Rotating this stops every session
+ *  feeling like the same question-and-answer drill. */
+export type SessionActivity = "chat" | "game" | "story";
+
 export interface ConverseRequestBody {
   childName: string;
   topic: Topic;
   conversationHistory: ChatTurn[];
   turnCount: number;
   exchangeTarget: number;
+  activity: SessionActivity;
+  /** Things she's told Mila in past sessions — this is what makes Mila
+   *  feel like someone who knows her rather than a stranger each time. */
+  memories: string[];
 }
 
 export interface ConverseResponseBody {
@@ -40,6 +48,8 @@ export interface ConverseResponseBody {
   exchangeComplete: boolean;
   celebrationLevel: CelebrationLevel;
   sessionComplete: boolean;
+  /** A new fact worth carrying into future sessions, if she revealed one. */
+  remember: string | null;
 }
 
 export interface TranscribeResponseBody {

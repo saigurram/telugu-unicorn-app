@@ -3,6 +3,15 @@ export interface PhraseHistoryEntry {
   timesSeen: number;
 }
 
+export interface MemoryEntry {
+  text: string;
+  session: number;
+}
+
+/** Keep the store small and the prompt focused — older facts age out. */
+export const MAX_MEMORIES = 40;
+export const MEMORY_MAX_LENGTH = 140;
+
 export interface AppStorageV1 {
   version: 1;
   child: {
@@ -16,6 +25,9 @@ export interface AppStorageV1 {
     streakLastDate: string | null;
   };
   phraseHistory: Record<string, PhraseHistoryEntry>;
+  /** Short facts the child has revealed about herself, newest last. Fed
+   *  back to Mila so she can open with "you told me you like dosa!". */
+  memories: MemoryEntry[];
   settings: {
     voiceEnabled: boolean;
     exchangeTarget: number;
@@ -37,6 +49,7 @@ export function defaultStorage(): AppStorageV1 {
       streakLastDate: null,
     },
     phraseHistory: {},
+    memories: [],
     settings: {
       voiceEnabled: true,
       exchangeTarget: 4,
