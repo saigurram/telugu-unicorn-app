@@ -24,7 +24,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#fdf6ec",
+  themeColor: "#ffe9f6",
 };
 
 export default function RootLayout({
@@ -34,7 +34,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="te" className={`${fredoka.variable} ${notoTelugu.variable} h-full`}>
-      <body className="min-h-full flex flex-col bg-cream text-ink antialiased">
+      <body className="min-h-full flex flex-col overflow-x-hidden text-ink antialiased">
         {children}
       </body>
     </html>

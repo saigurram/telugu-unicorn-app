@@ -9,31 +9,81 @@
 .svgRoot {
   width: 100%;
   height: 100%;
-  max-width: 420px;
+  max-width: 460px;
   overflow: visible;
+  filter: drop-shadow(0 14px 18px rgba(91, 63, 122, 0.22));
 }
 
-/* ---------- base (idle) state ---------- */
+/* ---------- base (idle) ----------
+   Idle is deliberately never fully still: the float, breathe, tail sway,
+   mane shimmer, blink, ear twitch and sparkle twinkle all run on different
+   periods so the loop never visibly repeats as a single beat. */
+
+.floatGroup {
+  transform-origin: 150px 160px;
+  animation: float 4.5s ease-in-out infinite;
+}
 
 .body {
-  transform-origin: 150px 175px;
-  animation: breathe 3s ease-in-out infinite;
+  transform-origin: 150px 240px;
+  animation: breathe 3.4s ease-in-out infinite;
 }
 
 .tail {
-  transform-origin: 45px 175px;
-  animation: tailSway 3.5s ease-in-out infinite;
+  transform-origin: 96px 220px;
+  animation: tailSway 3.1s ease-in-out infinite;
+}
+
+.maneBack {
+  transform-origin: 150px 140px;
+  animation: maneShimmer 5.2s ease-in-out infinite;
+}
+
+.head {
+  transform-origin: 150px 200px;
+  animation: headSway 6.5s ease-in-out infinite;
 }
 
 .eyelidLeft,
 .eyelidRight {
-  transform-origin: 128px 139px;
+  transform-origin: 119px 120px;
   transform: scaleY(0);
-  animation: blink 4.6s ease-in-out infinite;
+  animation: blink 5.2s ease-in-out infinite;
 }
 .eyelidRight {
-  transform-origin: 172px 139px;
-  animation-delay: 0.08s;
+  transform-origin: 181px 120px;
+  animation-delay: 0.07s;
+}
+
+/* Each ear pivots on its own base, not the head centre — sharing an origin
+   swings them as one rigid bar and visibly detaches the far ear. */
+.earLeft,
+.earRight {
+  transform-origin: 119px 90px;
+  transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.3, 1);
+  animation: earTwitch 7.4s ease-in-out infinite;
+}
+.earRight {
+  transform-origin: 181px 90px;
+  animation-delay: 3.6s;
+}
+
+.horn {
+  transform-origin: 150px 88px;
+}
+
+.eyeLeft,
+.eyeRight {
+  transform-origin: 118px 148px;
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.eyeRight {
+  transform-origin: 182px 148px;
+}
+
+.cheekLeft,
+.cheekRight {
+  transition: opacity 0.3s ease-out;
 }
 
 .mouthClosed {
@@ -43,133 +93,297 @@
   opacity: 0;
 }
 
-.earLeft,
-.earRight {
-  transform-origin: 150px 108px;
-  transition: transform 0.3s ease-out;
-}
-
 .glowRing {
   opacity: 0;
-  transform-origin: 150px 120px;
+  transform-origin: 150px 168px;
 }
 
 .sparkles path {
-  opacity: 0;
   transform-origin: center;
+  transform-box: fill-box;
+  opacity: 0;
+  animation: twinkleIdle 3.8s ease-in-out infinite;
 }
-
-.mane {
-  transform-origin: 150px 120px;
+.sparkle2 {
+  animation-delay: 0.8s;
+}
+.sparkle3 {
+  animation-delay: 1.6s;
+}
+.sparkle4 {
+  animation-delay: 2.3s;
+}
+.sparkle5 {
+  animation-delay: 3s;
 }
 
 /* ---------- talking ---------- */
 
-.wrapper[data-state="talking"] .body {
-  animation: headBob 0.6s ease-in-out infinite;
+.wrapper[data-state="talking"] .head {
+  animation: headBob 0.55s ease-in-out infinite;
+}
+.wrapper[data-state="talking"] .earLeft,
+.wrapper[data-state="talking"] .earRight {
+  animation: earBounce 0.55s ease-in-out infinite;
+}
+.wrapper[data-state="talking"] .earRight {
+  animation-delay: 0.09s;
 }
 .wrapper[data-state="talking"] .mouthClosed {
-  animation: mouthFlapClosed 0.36s steps(1, end) infinite;
+  animation: mouthFlapClosed 0.34s steps(1, end) infinite;
 }
 .wrapper[data-state="talking"] .mouthOpen {
-  animation: mouthFlapOpen 0.36s steps(1, end) infinite;
+  animation: mouthFlapOpen 0.34s steps(1, end) infinite;
+}
+.wrapper[data-state="talking"] .tail {
+  animation-duration: 1.9s;
 }
 
 /* ---------- listening ---------- */
 
 .wrapper[data-state="listening"] .earLeft {
-  transform: rotate(-12deg) translateY(-4px);
+  animation: none;
+  transform: rotate(-15deg) translateY(-6px);
 }
 .wrapper[data-state="listening"] .earRight {
-  transform: rotate(12deg) translateY(-4px);
+  animation: none;
+  transform: rotate(15deg) translateY(-6px);
 }
 .wrapper[data-state="listening"] .glowRing {
-  animation: pulseGlow 1.3s ease-in-out infinite;
+  animation: pulseGlow 1.4s ease-in-out infinite;
 }
 .wrapper[data-state="listening"] .eyeLeft,
 .wrapper[data-state="listening"] .eyeRight {
-  transform: scale(1.05);
+  transform: scale(1.08);
+}
+.wrapper[data-state="listening"] .cheekLeft,
+.wrapper[data-state="listening"] .cheekRight {
+  opacity: 0.85;
+}
+.wrapper[data-state="listening"] .head {
+  animation: headTilt 2.2s ease-in-out infinite;
 }
 
 /* ---------- celebrating ---------- */
 
-.wrapper[data-state="celebrating"] .body {
-  animation: milaJump 0.6s ease-in-out 3;
+.wrapper[data-state="celebrating"] .character {
+  animation: milaJump 0.62s cubic-bezier(0.3, 0.7, 0.4, 1) 3;
 }
 .wrapper[data-state="celebrating"] .eyelidLeft,
 .wrapper[data-state="celebrating"] .eyelidRight {
   animation: none;
   transform: scaleY(0);
 }
-.wrapper[data-state="celebrating"] .mane {
+.wrapper[data-state="celebrating"] .maneBack {
   animation: hueCycle 1.4s linear infinite;
 }
-.wrapper[data-state="celebrating"] .sparkle1 {
+.wrapper[data-state="celebrating"] .tail {
+  animation-duration: 0.7s;
+}
+.wrapper[data-state="celebrating"] .cheekLeft,
+.wrapper[data-state="celebrating"] .cheekRight {
+  opacity: 0.95;
+}
+.wrapper[data-state="celebrating"] .sparkles path {
   animation: sparkleBurst 1.1s ease-out 3;
-  animation-delay: 0s;
 }
 .wrapper[data-state="celebrating"] .sparkle2 {
-  animation: sparkleBurst 1.1s ease-out 3;
-  animation-delay: 0.15s;
+  animation-delay: 0.12s;
 }
 .wrapper[data-state="celebrating"] .sparkle3 {
-  animation: sparkleBurst 1.1s ease-out 3;
-  animation-delay: 0.3s;
+  animation-delay: 0.24s;
 }
 .wrapper[data-state="celebrating"] .sparkle4 {
-  animation: sparkleBurst 1.1s ease-out 3;
-  animation-delay: 0.45s;
+  animation-delay: 0.36s;
+}
+.wrapper[data-state="celebrating"] .sparkle5 {
+  animation-delay: 0.48s;
 }
 
 /* ---------- keyframes ---------- */
 
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-9px);
+  }
+}
+
 @keyframes breathe {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.025); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.03, 1.02);
+  }
 }
 
 @keyframes tailSway {
-  0%, 100% { transform: rotate(0deg); }
-  50% { transform: rotate(6deg); }
+  0%,
+  100% {
+    transform: rotate(-5deg);
+  }
+  50% {
+    transform: rotate(7deg);
+  }
+}
+
+@keyframes maneShimmer {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.02) rotate(-1.2deg);
+  }
+}
+
+@keyframes headSway {
+  0%,
+  100% {
+    transform: rotate(-1.4deg);
+  }
+  50% {
+    transform: rotate(1.4deg);
+  }
 }
 
 @keyframes blink {
-  0%, 92%, 100% { transform: scaleY(0); }
-  95% { transform: scaleY(1); }
+  0%,
+  91%,
+  100% {
+    transform: scaleY(0);
+  }
+  94%,
+  96% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes earTwitch {
+  0%,
+  86%,
+  100% {
+    transform: rotate(0deg);
+  }
+  90% {
+    transform: rotate(-7deg);
+  }
+  94% {
+    transform: rotate(3deg);
+  }
 }
 
 @keyframes headBob {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(1deg);
+  }
+}
+
+@keyframes earBounce {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-6deg) translateY(-3px);
+  }
+}
+
+@keyframes headTilt {
+  0%,
+  100% {
+    transform: rotate(-3.5deg);
+  }
+  50% {
+    transform: rotate(3.5deg);
+  }
 }
 
 @keyframes mouthFlapClosed {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
 }
 @keyframes mouthFlapOpen {
-  0%, 100% { opacity: 0; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 @keyframes pulseGlow {
-  0%, 100% { opacity: 0.15; transform: scale(0.96); }
-  50% { opacity: 0.4; transform: scale(1.02); }
+  0%,
+  100% {
+    opacity: 0.18;
+    transform: scale(0.94);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.03);
+  }
 }
 
 @keyframes milaJump {
-  0%, 100% { transform: translateY(0) scale(1); }
-  30% { transform: translateY(-22px) scale(1.03); }
-  60% { transform: translateY(2px) scale(0.98); }
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  30% {
+    transform: translateY(-30px) scale(1.04, 0.97);
+  }
+  60% {
+    transform: translateY(4px) scale(0.97, 1.03);
+  }
 }
 
 @keyframes hueCycle {
-  0% { filter: hue-rotate(0deg); }
-  100% { filter: hue-rotate(360deg); }
+  0% {
+    filter: hue-rotate(0deg);
+  }
+  100% {
+    filter: hue-rotate(360deg);
+  }
+}
+
+@keyframes twinkleIdle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.5) rotate(0deg);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1) rotate(45deg);
+  }
 }
 
 @keyframes sparkleBurst {
-  0% { opacity: 0; transform: scale(0.4) rotate(0deg); }
-  40% { opacity: 1; transform: scale(1.1) rotate(45deg); }
-  100% { opacity: 0; transform: scale(0.6) rotate(90deg); }
+  0% {
+    opacity: 0;
+    transform: scale(0.4) rotate(0deg);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.25) rotate(45deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.6) rotate(90deg);
+  }
 }

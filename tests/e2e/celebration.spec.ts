@@ -82,3 +82,33 @@ test("ending a session early always reaches the celebration screen", async ({ pa
   await expect(page.getByTestId("home-button")).toBeVisible({ timeout: 10_000 });
   await expect(page.locator('[data-state="celebrating"]')).toBeVisible();
 });
+
+test("ending a session early while Mila is listening also reaches celebration", async ({ page }) => {
+  // Leaving LISTENING stops the mic, which fires CHILD_RECORDING_COMPLETE
+  // just after the phase already moved to CELEBRATION — that late action
+  // must not pull the session back into TRANSCRIBING.
+  await page.addInitScript(
+    ([key, value]) => window.localStorage.setItem(key, value),
+    [STORAGE_KEY, JSON.stringify(seededStorage(4))],
+  );
+
+  await mockApiRoutes(page, {
+    reply: (): ConverseResponseBody => ({
+      speech: "నమస్కారం!",
+      childSpokeTelugu: false,
+      exchangeComplete: false,
+      celebrationLevel: "none",
+      sessionComplete: false,
+    }),
+  });
+
+  await page.goto("/");
+  await page.getByTestId("play-button").click();
+
+  await expect(page.locator('[data-state="listening"]')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByTestId("mic-button")).toBeEnabled();
+  await page.getByTestId("end-session-button").click();
+
+  await expect(page.getByTestId("home-button")).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator('[data-state="celebrating"]')).toBeVisible();
+});

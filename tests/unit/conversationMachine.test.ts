@@ -139,6 +139,20 @@ describe("conversationReducer", () => {
     expect(again.turnEpoch).toBe(celebrating.turnEpoch);
   });
 
+  it("ignores a recording that lands after the session already ended", () => {
+    // Tapping "bye bye" mid-listen stops the mic, and that stop fires
+    // CHILD_RECORDING_COMPLETE a beat later. Acting on it would drag the
+    // session back out of CELEBRATION into TRANSCRIBING.
+    const listening = { ...startedState(), phase: "LISTENING" as const };
+    const celebrating = conversationReducer(listening, { type: "END_SESSION_EARLY" });
+    const afterStaleRecording = conversationReducer(celebrating, {
+      type: "CHILD_RECORDING_COMPLETE",
+    });
+
+    expect(afterStaleRecording.phase).toBe("CELEBRATION");
+    expect(afterStaleRecording.turnEpoch).toBe(celebrating.turnEpoch);
+  });
+
   it("CELEBRATION_FINISHED resets to a fresh initial state", () => {
     const celebrating = conversationReducer(startedState(), { type: "END_SESSION_EARLY" });
     const finished = conversationReducer(celebrating, { type: "CELEBRATION_FINISHED" });
@@ -175,8 +189,10 @@ describe("conversationReducer", () => {
   });
 
   it("throws on an illegal transition (dev safety net)", () => {
-    // THINKING can only ever advance to MILA_SPEAKING; a stray
-    // CHILD_RECORDING_COMPLETE here would mean the UI is out of sync.
-    expect(() => conversationReducer(startedState(), { type: "CHILD_RECORDING_COMPLETE" })).toThrow();
+    // THINKING can only ever advance to MILA_SPEAKING; a playback-ended
+    // here would mean the UI is out of sync with the machine.
+    // (CHILD_RECORDING_COMPLETE is deliberately exempt — a late mic stop
+    // is expected rather than a bug, so it self-ignores instead.)
+    expect(() => conversationReducer(startedState(), { type: "MILA_PLAYBACK_ENDED" })).toThrow();
   });
 });

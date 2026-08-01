@@ -1,5 +1,5 @@
-const COLORS = ["#c9a7f0", "#a7d8f0", "#a7e8d8", "#f7b6d2", "#f4c95d"];
-const PIECE_COUNT = 28;
+const COLORS = ["#7c4dff", "#3ec5ff", "#1fd0a3", "#ff4f9a", "#ffc53d", "#ff8a3d"];
+const PIECE_COUNT = 36;
 
 interface Piece {
   left: number;

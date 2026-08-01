@@ -122,6 +122,13 @@ export function conversationReducer(
     }
 
     case "CHILD_RECORDING_COMPLETE": {
+      // Leaving LISTENING for any reason stops the mic, and that stop fires
+      // this action a beat later — so it routinely arrives when the turn has
+      // already moved on (tapping "bye bye" mid-listen, an error, a retry).
+      // Acting on those would yank the session back out of CELEBRATION into
+      // TRANSCRIBING; only a completion that lands while still listening is
+      // a real child turn.
+      if (state.phase !== "LISTENING") return state;
       assertLegalTransition(state.phase, "TRANSCRIBING");
       return { ...state, turnEpoch: state.turnEpoch + 1, phase: "TRANSCRIBING" };
     }
